@@ -51,5 +51,5 @@ app.get('/todos/:id', (req,res) => {
 });
 
 app.listen(port, () => {
-  console.log('Server Up and Running');
+  console.log(`Server Up and Running on ${port}`);
 })
