@@ -2,7 +2,7 @@ var mongoose = require('mongoose');
 var validator = require('validator');
 var jwt = require('jsonwebtoken');
 var _ = require('lodash');
-
+var {ObjectID} = require('mongodb');
 var UserSchema = new mongoose.Schema(
   {
     email: {
@@ -52,6 +52,21 @@ UserSchema.methods.generateAuthToken = function () {
     return token;
   });
 
+};
+
+UserSchema.statics.findByToken = function(token) {
+  var User = this;
+  var decoded;
+  try{
+    decoded = jwt.verify(token,'abc123');
+  } catch(e) {
+    return Promise.reject();
+  }
+  //console.log(decoded);
+  return User.findOne({
+    '_id': new ObjectID(decoded._id),
+    'tokens.token':token
+  });
 };
 
 
