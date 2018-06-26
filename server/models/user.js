@@ -3,6 +3,7 @@ var validator = require('validator');
 var jwt = require('jsonwebtoken');
 var _ = require('lodash');
 var {ObjectID} = require('mongodb');
+var bcrypt = require('bcryptjs');
 var UserSchema = new mongoose.Schema(
   {
     email: {
@@ -54,6 +55,16 @@ UserSchema.methods.generateAuthToken = function () {
 
 };
 
+UserSchema.methods.removeToken = function(token) {
+  var user = this;
+  console.log(token);
+  return user.update({
+    $pull: {
+      tokens:{token}
+    }
+  })
+};
+
 UserSchema.statics.findByToken = function(token) {
   var User = this;
   var decoded;
@@ -69,6 +80,23 @@ UserSchema.statics.findByToken = function(token) {
   });
 };
 
+
+UserSchema.pre('save', function (next) {
+  var user = this;
+
+  if(user.isModified('password')) {
+    bcrypt.genSalt(10,(err,salt) => {
+      bcrypt.hash(user.password,salt,(err,hash) => {
+        user.password = hash;
+        next();
+      });
+    });
+  }
+  else {
+    next();
+  }
+
+});
 
 var User = mongoose.model('User', UserSchema);
 

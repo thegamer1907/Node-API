@@ -2,7 +2,7 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var {ObjectID} = require('mongodb');
 var _ = require('lodash');
-
+var bcrypt = require('bcryptjs');
 var {mongoose} = require("./db/mongoose.js");
 var {Todo} = require("./models/todo");
 var {User} = require("./models/user");
@@ -113,6 +113,51 @@ app.post('/users',(req,res) => {
     res.header('x-auth',token).send(user);
   }).catch((e) => {
     res.status(400).send(e);
+  });
+});
+
+
+app.post('/users/login', (req,res) => {
+
+  User.findOne({email: req.body.email}).then((user) => {
+    if(!user){
+      throw new Error();
+    }
+    bcrypt.compare(req.body.password, user.password, function(err,result){
+        if(err || result === false){
+          res.status(401).send();
+        }
+        else {
+          if(user.tokens.length > 0)
+          {
+            var se = _.pick(user, ['_id','email']);
+            var token = user.tokens[0].token;
+            res.header('x-auth',token).send(se);
+          }
+          else {
+            var se = _.pick(user, ['_id','email']);
+            user.generateAuthToken().then((token) => {
+                //console.log(token);
+                //console.log(se);
+                res.header('x-auth',token).send(se);
+            });
+          }
+            //console.log(token);
+
+        }
+    });
+
+  }).catch((e) => {
+    res.status(401).send();
+  });
+});
+
+app.delete('/users/me/token', authenticate, (req,res) => {
+  //console.log(req.user);
+  req.user.removeToken(req.token).then(() => {
+    res.status(200).send();
+  }, () => {
+    res.status(400).send();
   });
 });
 
